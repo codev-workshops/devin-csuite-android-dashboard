@@ -3,13 +3,17 @@ package com.devin.csuite.presentation.navigation
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.navigation.NavHostController
+import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
+import androidx.navigation.navArgument
+import com.devin.csuite.presentation.PlaceholderScreen
 import com.devin.csuite.presentation.home.HomeScreen
 import com.devin.csuite.presentation.onboarding.ApiKeyInputScreen
 import com.devin.csuite.presentation.onboarding.WelcomeScreen
+import com.devin.csuite.presentation.sessions.SessionDetailScreen
+import com.devin.csuite.presentation.sessions.SessionsScreen
 import com.devin.csuite.presentation.settings.SettingsScreen
-import com.devin.csuite.presentation.PlaceholderScreen
 
 @Composable
 fun AppNavHost(
@@ -51,7 +55,24 @@ fun AppNavHost(
         }
 
         composable(Routes.SESSIONS) {
-            PlaceholderScreen(title = "Sessions", subtitle = "Coming in Phase 4")
+            SessionsScreen(
+                onSessionClick = { sessionId ->
+                    navController.navigate(Routes.sessionDetail(sessionId))
+                }
+            )
+        }
+
+        composable(
+            route = Routes.SESSION_DETAIL,
+            arguments = listOf(
+                navArgument("devinId") { type = NavType.StringType }
+            )
+        ) { backStackEntry ->
+            val devinId = backStackEntry.arguments?.getString("devinId") ?: ""
+            SessionDetailScreen(
+                devinId = devinId,
+                onNavigateBack = { navController.popBackStack() }
+            )
         }
 
         composable(Routes.BILLING) {
