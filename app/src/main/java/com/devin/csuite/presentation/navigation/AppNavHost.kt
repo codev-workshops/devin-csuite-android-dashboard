@@ -7,7 +7,8 @@ import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
-import com.devin.csuite.presentation.PlaceholderScreen
+import com.devin.csuite.presentation.analytics.AnalyticsScreen
+import com.devin.csuite.presentation.billing.BillingScreen
 import com.devin.csuite.presentation.home.HomeScreen
 import com.devin.csuite.presentation.onboarding.ApiKeyInputScreen
 import com.devin.csuite.presentation.onboarding.WelcomeScreen
@@ -51,7 +52,7 @@ fun AppNavHost(
         }
 
         composable(Routes.ANALYTICS) {
-            PlaceholderScreen(title = "Analytics", subtitle = "Coming in Phase 2")
+            AnalyticsScreen()
         }
 
         composable(Routes.SESSIONS) {
@@ -76,7 +77,7 @@ fun AppNavHost(
         }
 
         composable(Routes.BILLING) {
-            PlaceholderScreen(title = "Billing", subtitle = "Coming in Phase 2")
+            BillingScreen()
         }
 
         composable(Routes.SETTINGS) {
