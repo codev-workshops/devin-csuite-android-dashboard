@@ -49,6 +49,10 @@ object IpValidator {
         val ipPart = parts[0]
         val cidrPart = parts.getOrNull(1)
 
+        if (ipPart.contains(":::")) {
+            return ValidationResult.Invalid("Invalid IPv6 format")
+        }
+
         val isValid = IPV6_FULL_REGEX.matches(input) ||
             IPV6_COMPRESSED_REGEX.matches(input) ||
             isValidCompressedIpv6(ipPart)
