@@ -5,6 +5,41 @@ plugins {
     alias(libs.plugins.hilt.android)
     alias(libs.plugins.ksp)
     alias(libs.plugins.kotlin.serialization)
+    jacoco
+}
+
+jacoco {
+    toolVersion = "0.8.12"
+}
+
+tasks.register<JacocoReport>("jacocoTestReport") {
+    dependsOn("testDebugUnitTest")
+    group = "verification"
+    description = "Generate JaCoCo coverage report for debug unit tests"
+
+    reports {
+        xml.required.set(true)
+        html.required.set(true)
+        csv.required.set(false)
+    }
+
+    val kotlinClasses = fileTree("${layout.buildDirectory.get()}/tmp/kotlin-classes/debug") {
+        exclude(
+            "**/R.class", "**/R\$*.class", "**/BuildConfig.class",
+            "**/*_HiltModules*", "**/*_Factory*", "**/*_MembersInjector*",
+            "**/Hilt_*", "**/dagger/**", "**/hilt_aggregated_deps/**",
+            "**/presentation/theme/**", "**/presentation/components/**",
+            "**/presentation/*Screen*"
+        )
+    }
+
+    classDirectories.setFrom(kotlinClasses)
+    sourceDirectories.setFrom("${project.projectDir}/src/main/java")
+    executionData.setFrom(
+        fileTree(layout.buildDirectory) {
+            include("jacoco/testDebugUnitTest.exec")
+        }
+    )
 }
 
 android {
@@ -49,6 +84,15 @@ android {
     buildFeatures {
         compose = true
         buildConfig = true
+    }
+
+    testOptions {
+        unitTests.all {
+            it.extensions.configure(JacocoTaskExtension::class.java) {
+                isIncludeNoLocationClasses = true
+                excludes = listOf("jdk.internal.*")
+            }
+        }
     }
 }
 
