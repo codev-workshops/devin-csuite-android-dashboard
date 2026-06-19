@@ -1,5 +1,7 @@
 package com.devin.csuite.data.remote
 
+import com.devin.csuite.core.NetworkMonitor
+import com.devin.csuite.data.local.datasource.LocalMetricsDataSource
 import com.devin.csuite.domain.model.ActiveUsersResponse
 import com.devin.csuite.domain.model.DauMetricsResponse
 import com.devin.csuite.domain.model.MauMetricsResponse
@@ -16,47 +18,87 @@ import javax.inject.Singleton
 
 @Singleton
 class TeamRepositoryImpl @Inject constructor(
-    private val api: EnterpriseApi
+    private val api: EnterpriseApi,
+    private val localMetrics: LocalMetricsDataSource,
+    private val networkMonitor: NetworkMonitor
 ) : TeamRepository {
 
     override fun getDauMetrics(orgId: String?): Flow<Result<DauMetricsResponse>> = flow {
-        emit(safeApiCall {
-            if (orgId != null) api.getOrgDauMetrics(orgId) else api.getDauMetrics()
-        })
+        if (orgId == null) {
+            localMetrics.getDauMetrics()?.let { emit(Result.success(it)) }
+        }
+        if (networkMonitor.isConnected.value) {
+            val result = safeApiCall {
+                if (orgId != null) api.getOrgDauMetrics(orgId) else api.getDauMetrics()
+            }
+            if (orgId == null) result.getOrNull()?.let { localMetrics.saveDauMetrics(it) }
+            emit(result)
+        }
     }
 
     override fun getWauMetrics(orgId: String?): Flow<Result<WauMetricsResponse>> = flow {
-        emit(safeApiCall {
-            if (orgId != null) api.getOrgWauMetrics(orgId) else api.getWauMetrics()
-        })
+        if (networkMonitor.isConnected.value) {
+            emit(safeApiCall {
+                if (orgId != null) api.getOrgWauMetrics(orgId) else api.getWauMetrics()
+            })
+        } else {
+            emit(Result.failure(OfflineException()))
+        }
     }
 
     override fun getMauMetrics(orgId: String?): Flow<Result<MauMetricsResponse>> = flow {
-        emit(safeApiCall {
-            if (orgId != null) api.getOrgMauMetrics(orgId) else api.getMauMetrics()
-        })
+        if (orgId == null) {
+            localMetrics.getMauMetrics()?.let { emit(Result.success(it)) }
+        }
+        if (networkMonitor.isConnected.value) {
+            val result = safeApiCall {
+                if (orgId != null) api.getOrgMauMetrics(orgId) else api.getMauMetrics()
+            }
+            if (orgId == null) result.getOrNull()?.let { localMetrics.saveMauMetrics(it) }
+            emit(result)
+        }
     }
 
     override fun getActiveUsers(orgId: String?): Flow<Result<ActiveUsersResponse>> = flow {
-        emit(safeApiCall {
-            if (orgId != null) api.getOrgActiveUsers(orgId) else api.getActiveUsers()
-        })
+        if (orgId == null) {
+            localMetrics.getActiveUsers()?.let { emit(Result.success(it)) }
+        }
+        if (networkMonitor.isConnected.value) {
+            val result = safeApiCall {
+                if (orgId != null) api.getOrgActiveUsers(orgId) else api.getActiveUsers()
+            }
+            if (orgId == null) result.getOrNull()?.let { localMetrics.saveActiveUsers(it) }
+            emit(result)
+        }
     }
 
     override fun getOrganizations(): Flow<Result<OrganizationsResponse>> = flow {
-        emit(safeApiCall { api.getOrganizations() })
+        localMetrics.getOrganizations()?.let { emit(Result.success(it)) }
+        if (networkMonitor.isConnected.value) {
+            val result = safeApiCall { api.getOrganizations() }
+            result.getOrNull()?.let { localMetrics.saveOrganizations(it) }
+            emit(result)
+        }
     }
 
     override fun getUsers(orgId: String?): Flow<Result<UsersResponse>> = flow {
-        emit(safeApiCall {
-            if (orgId != null) api.getOrgUsers(orgId) else api.getUsers()
-        })
+        if (networkMonitor.isConnected.value) {
+            emit(safeApiCall {
+                if (orgId != null) api.getOrgUsers(orgId) else api.getUsers()
+            })
+        } else {
+            emit(Result.failure(OfflineException()))
+        }
     }
 
     override fun getRoles(orgId: String?): Flow<Result<RolesResponse>> = flow {
-        emit(safeApiCall {
-            if (orgId != null) api.getOrgRoles(orgId) else api.getRoles()
-        })
+        if (networkMonitor.isConnected.value) {
+            emit(safeApiCall {
+                if (orgId != null) api.getOrgRoles(orgId) else api.getRoles()
+            })
+        } else {
+            emit(Result.failure(OfflineException()))
+        }
     }
 
     private suspend fun <T> safeApiCall(call: suspend () -> Response<T>): Result<T> {

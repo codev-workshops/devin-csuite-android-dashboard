@@ -1,5 +1,7 @@
 package com.devin.csuite.data.remote
 
+import com.devin.csuite.core.NetworkMonitor
+import com.devin.csuite.data.local.datasource.LocalSessionsDataSource
 import com.devin.csuite.domain.model.InsightsResponse
 import com.devin.csuite.domain.model.Session
 import com.devin.csuite.domain.model.SessionsResponse
@@ -12,7 +14,9 @@ import javax.inject.Singleton
 
 @Singleton
 class SessionsRepositoryImpl @Inject constructor(
-    private val api: SessionsApi
+    private val api: SessionsApi,
+    private val localSessions: LocalSessionsDataSource,
+    private val networkMonitor: NetworkMonitor
 ) : SessionsRepository {
 
     override fun getSessions(
@@ -25,25 +29,42 @@ class SessionsRepositoryImpl @Inject constructor(
         createdAfter: Long?,
         createdBefore: Long?
     ): Flow<Result<SessionsResponse>> = flow {
-        emit(safeApiCall {
-            api.getSessions(
-                first = first,
-                after = after,
-                status = status,
-                origin = origin,
-                user = user,
-                tags = tags,
-                createdAfter = createdAfter,
-                createdBefore = createdBefore
-            )
-        })
+        val hasFilters = after != null || origin != null || user != null || tags != null ||
+                createdAfter != null || createdBefore != null
+        if (!hasFilters) {
+            val cached = localSessions.getSessions(first ?: 100, status)
+            if (cached != null) emit(Result.success(cached))
+        }
+
+        if (networkMonitor.isConnected.value) {
+            val result = safeApiCall {
+                api.getSessions(first, after, status, origin, user, tags, createdAfter, createdBefore)
+            }
+            result.getOrNull()?.let { localSessions.saveSessions(it.sessions) }
+            emit(result)
+        } else if (hasFilters) {
+            emit(Result.failure(OfflineException()))
+        }
     }
 
     override fun getSessionDetail(devinId: String): Flow<Result<Session>> = flow {
-        emit(safeApiCall { api.getSessionDetail(devinId) })
+        val cached = localSessions.getSession(devinId)
+        if (cached != null) emit(Result.success(cached))
+
+        if (networkMonitor.isConnected.value) {
+            val result = safeApiCall { api.getSessionDetail(devinId) }
+            result.getOrNull()?.let { localSessions.saveSessions(listOf(it)) }
+            emit(result)
+        } else if (cached == null) {
+            emit(Result.failure(OfflineException()))
+        }
     }
 
     override fun generateInsights(devinId: String): Flow<Result<InsightsResponse>> = flow {
+        if (!networkMonitor.isConnected.value) {
+            emit(Result.failure(OfflineException()))
+            return@flow
+        }
         emit(safeApiCall { api.generateInsights(devinId) })
     }
 

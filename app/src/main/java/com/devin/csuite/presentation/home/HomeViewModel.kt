@@ -7,6 +7,8 @@ import com.devin.csuite.domain.model.ActiveUser
 import com.devin.csuite.domain.model.BillingCycle
 import com.devin.csuite.domain.model.MetricDataPoint
 import com.devin.csuite.domain.model.Session
+import com.devin.csuite.core.NetworkMonitor
+import com.devin.csuite.data.local.datasource.LocalMetricsDataSource
 import com.devin.csuite.domain.repository.MetricsRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.async
@@ -29,12 +31,17 @@ data class HomeUiState(
     val isRefreshing: Boolean = false,
     val selectedTimeRange: String = "30d",
     val showCriticalAlert: Boolean = false,
-    val criticalAlertMessage: String = ""
+    val criticalAlertMessage: String = "",
+    val isStale: Boolean = false,
+    val isOffline: Boolean = false,
+    val lastUpdatedMs: Long? = null
 )
 
 @HiltViewModel
 class HomeViewModel @Inject constructor(
-    private val metricsRepository: MetricsRepository
+    private val metricsRepository: MetricsRepository,
+    private val localMetrics: LocalMetricsDataSource,
+    private val networkMonitor: NetworkMonitor
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(HomeUiState())
@@ -42,6 +49,11 @@ class HomeViewModel @Inject constructor(
 
     init {
         loadData()
+        viewModelScope.launch {
+            networkMonitor.isConnected.collect { connected ->
+                _uiState.value = _uiState.value.copy(isOffline = !connected)
+            }
+        }
     }
 
     fun refresh() {
@@ -78,7 +90,14 @@ class HomeViewModel @Inject constructor(
             topUsersDeferred.await()
             recentDeferred.await()
 
-            _uiState.value = _uiState.value.copy(isRefreshing = false)
+            val lastUpdated = localMetrics.getLastUpdated("organizations")
+            val staleThreshold = 15 * 60 * 1000L
+            val isStale = lastUpdated != null && (System.currentTimeMillis() - lastUpdated) > staleThreshold
+            _uiState.value = _uiState.value.copy(
+                isRefreshing = false,
+                lastUpdatedMs = lastUpdated ?: System.currentTimeMillis(),
+                isStale = isStale
+            )
         }
     }
 

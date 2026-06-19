@@ -81,6 +81,10 @@ android {
         jvmTarget = "17"
     }
 
+    ksp {
+        arg("room.schemaLocation", "$projectDir/schemas")
+    }
+
     buildFeatures {
         compose = true
         buildConfig = true
@@ -137,6 +141,23 @@ dependencies {
     // Charts
     implementation(libs.vico.compose.m3)
 
+    // Room
+    implementation(libs.androidx.room.runtime)
+    implementation(libs.androidx.room.ktx)
+    ksp(libs.androidx.room.compiler)
+
+    // WorkManager
+    implementation(libs.androidx.work.runtime.ktx)
+    implementation(libs.androidx.hilt.work)
+    ksp(libs.androidx.hilt.compiler)
+
+    // Glance Widgets
+    implementation(libs.androidx.glance.appwidget)
+    implementation(libs.androidx.glance.material3)
+
+    // Window Size Class
+    implementation(libs.androidx.window.size)
+
     // Coroutines
     implementation(libs.kotlinx.coroutines.android)
 
@@ -150,4 +171,6 @@ dependencies {
     testImplementation(libs.robolectric)
     testImplementation(libs.compose.ui.test.junit4)
     debugImplementation(libs.compose.ui.test.manifest)
+    testImplementation(libs.androidx.room.testing)
+    testImplementation(libs.androidx.work.testing)
 }

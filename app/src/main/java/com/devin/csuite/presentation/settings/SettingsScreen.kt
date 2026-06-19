@@ -23,6 +23,7 @@ import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Key
 import androidx.compose.material.icons.filled.LightMode
 import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Security
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.AlertDialog
@@ -32,6 +33,7 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -39,10 +41,13 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.devin.csuite.BuildConfig
 import com.devin.csuite.core.Constants
+import com.devin.csuite.notification.NotificationHelper
 import com.devin.csuite.presentation.theme.AccentPrimary
 import com.devin.csuite.presentation.theme.ErrorRed
 import com.devin.csuite.presentation.theme.SuccessGreen
@@ -269,6 +274,27 @@ fun SettingsScreen(
             }
         }
 
+        // Notifications Section
+        SettingsCard(title = "Notifications") {
+            NotificationToggleRow(
+                label = "ACU Overage Alerts",
+                enabled = uiState.acuOverageEnabled,
+                onToggle = { viewModel.setNotificationEnabled(NotificationHelper.CHANNEL_ACU_OVERAGE, it) }
+            )
+            HorizontalDivider(color = MaterialTheme.colorScheme.surfaceVariant)
+            NotificationToggleRow(
+                label = "Error Spike Alerts",
+                enabled = uiState.errorSpikeEnabled,
+                onToggle = { viewModel.setNotificationEnabled(NotificationHelper.CHANNEL_ERROR_SPIKE, it) }
+            )
+            HorizontalDivider(color = MaterialTheme.colorScheme.surfaceVariant)
+            NotificationToggleRow(
+                label = "Guardrail Violations",
+                enabled = uiState.guardrailEnabled,
+                onToggle = { viewModel.setNotificationEnabled(NotificationHelper.CHANNEL_GUARDRAIL, it) }
+            )
+        }
+
         // About Section
         SettingsCard(title = "About") {
             SettingsRow(
@@ -340,6 +366,39 @@ private fun SettingsRow(
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
+    }
+}
+
+@Composable
+private fun NotificationToggleRow(
+    label: String,
+    enabled: Boolean,
+    onToggle: (Boolean) -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 8.dp)
+            .semantics { contentDescription = "$label notification toggle, currently ${if (enabled) "enabled" else "disabled"}" },
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Icon(
+            imageVector = Icons.Default.Notifications,
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.size(24.dp)
+        )
+        Spacer(modifier = Modifier.width(12.dp))
+        Text(
+            text = label,
+            style = MaterialTheme.typography.bodyLarge,
+            color = MaterialTheme.colorScheme.onSurface,
+            modifier = Modifier.weight(1f)
+        )
+        Switch(
+            checked = enabled,
+            onCheckedChange = onToggle
+        )
     }
 }
 

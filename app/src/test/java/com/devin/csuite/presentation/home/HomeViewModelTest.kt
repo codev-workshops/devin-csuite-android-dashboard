@@ -1,7 +1,9 @@
 package com.devin.csuite.presentation.home
 
 import app.cash.turbine.test
+import com.devin.csuite.core.NetworkMonitor
 import com.devin.csuite.core.UiState
+import com.devin.csuite.data.local.datasource.LocalMetricsDataSource
 import com.devin.csuite.domain.model.ActiveUser
 import com.devin.csuite.domain.model.ActiveUsersResponse
 import com.devin.csuite.domain.model.BillingCycle
@@ -17,6 +19,7 @@ import com.devin.csuite.domain.model.SessionsResponse
 import com.devin.csuite.domain.repository.MetricsRepository
 import io.mockk.coEvery
 import io.mockk.coVerify
+import io.mockk.every
 import io.mockk.mockk
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -39,6 +42,8 @@ class HomeViewModelTest {
 
     private val testDispatcher = StandardTestDispatcher()
     private lateinit var metricsRepository: MetricsRepository
+    private lateinit var localMetrics: LocalMetricsDataSource
+    private lateinit var networkMonitor: NetworkMonitor
     private lateinit var viewModel: HomeViewModel
 
     private val testBillingCycle = BillingCycle(
@@ -83,6 +88,10 @@ class HomeViewModelTest {
     fun setup() {
         Dispatchers.setMain(testDispatcher)
         metricsRepository = mockk()
+        localMetrics = mockk(relaxed = true)
+        networkMonitor = mockk()
+        every { networkMonitor.isConnected } returns kotlinx.coroutines.flow.MutableStateFlow(true)
+        coEvery { localMetrics.getLastUpdated(any()) } returns System.currentTimeMillis()
     }
 
     @After
@@ -106,7 +115,7 @@ class HomeViewModelTest {
     @Test
     fun `initial state is all loading`() = runTest {
         setupSuccessRepository()
-        viewModel = HomeViewModel(metricsRepository)
+        viewModel = HomeViewModel(metricsRepository, localMetrics, networkMonitor)
 
         val state = viewModel.uiState.value
         assertEquals(UiState.Loading, state.acuState)
@@ -122,7 +131,7 @@ class HomeViewModelTest {
     @Test
     fun `successful load transitions all states to Success`() = runTest {
         setupSuccessRepository()
-        viewModel = HomeViewModel(metricsRepository)
+        viewModel = HomeViewModel(metricsRepository, localMetrics, networkMonitor)
         advanceUntilIdle()
 
         val state = viewModel.uiState.value
@@ -140,7 +149,7 @@ class HomeViewModelTest {
     @Test
     fun `ACU data is correctly parsed from billing cycles response`() = runTest {
         setupSuccessRepository()
-        viewModel = HomeViewModel(metricsRepository)
+        viewModel = HomeViewModel(metricsRepository, localMetrics, networkMonitor)
         advanceUntilIdle()
 
         val acuState = viewModel.uiState.value.acuState as UiState.Success
@@ -150,7 +159,7 @@ class HomeViewModelTest {
     @Test
     fun `active sessions count is correctly parsed`() = runTest {
         setupSuccessRepository()
-        viewModel = HomeViewModel(metricsRepository)
+        viewModel = HomeViewModel(metricsRepository, localMetrics, networkMonitor)
         advanceUntilIdle()
 
         val sessionsState = viewModel.uiState.value.activeSessionsState as UiState.Success
@@ -160,7 +169,7 @@ class HomeViewModelTest {
     @Test
     fun `MAU count is correctly parsed`() = runTest {
         setupSuccessRepository()
-        viewModel = HomeViewModel(metricsRepository)
+        viewModel = HomeViewModel(metricsRepository, localMetrics, networkMonitor)
         advanceUntilIdle()
 
         val mauState = viewModel.uiState.value.mauState as UiState.Success
@@ -170,7 +179,7 @@ class HomeViewModelTest {
     @Test
     fun `PR count is correctly parsed`() = runTest {
         setupSuccessRepository()
-        viewModel = HomeViewModel(metricsRepository)
+        viewModel = HomeViewModel(metricsRepository, localMetrics, networkMonitor)
         advanceUntilIdle()
 
         val prState = viewModel.uiState.value.prCountState as UiState.Success
@@ -180,7 +189,7 @@ class HomeViewModelTest {
     @Test
     fun `top users limited to 5`() = runTest {
         setupSuccessRepository()
-        viewModel = HomeViewModel(metricsRepository)
+        viewModel = HomeViewModel(metricsRepository, localMetrics, networkMonitor)
         advanceUntilIdle()
 
         val topUsers = viewModel.uiState.value.topUsers as UiState.Success
@@ -191,7 +200,7 @@ class HomeViewModelTest {
     @Test
     fun `recent sessions limited to 5`() = runTest {
         setupSuccessRepository()
-        viewModel = HomeViewModel(metricsRepository)
+        viewModel = HomeViewModel(metricsRepository, localMetrics, networkMonitor)
         advanceUntilIdle()
 
         val sessions = viewModel.uiState.value.recentSessions as UiState.Success
@@ -211,7 +220,7 @@ class HomeViewModelTest {
         coEvery { metricsRepository.getActiveUsers() } returns flowOf(Result.success(testActiveUsersResponse))
         coEvery { metricsRepository.getSessions(limit = 5, status = null) } returns flowOf(Result.success(testSessionsResponse))
 
-        viewModel = HomeViewModel(metricsRepository)
+        viewModel = HomeViewModel(metricsRepository, localMetrics, networkMonitor)
         advanceUntilIdle()
 
         val state = viewModel.uiState.value
@@ -233,7 +242,7 @@ class HomeViewModelTest {
         coEvery { metricsRepository.getActiveUsers() } returns flowOf(Result.success(testActiveUsersResponse))
         coEvery { metricsRepository.getSessions(limit = 5, status = null) } returns flowOf(Result.success(testSessionsResponse))
 
-        viewModel = HomeViewModel(metricsRepository)
+        viewModel = HomeViewModel(metricsRepository, localMetrics, networkMonitor)
         advanceUntilIdle()
 
         val state = viewModel.uiState.value
@@ -258,7 +267,7 @@ class HomeViewModelTest {
         coEvery { metricsRepository.getActiveUsers() } returns flowOf(Result.failure(error))
         coEvery { metricsRepository.getSessions(limit = 5, status = null) } returns flowOf(Result.failure(error))
 
-        viewModel = HomeViewModel(metricsRepository)
+        viewModel = HomeViewModel(metricsRepository, localMetrics, networkMonitor)
         advanceUntilIdle()
 
         val state = viewModel.uiState.value
@@ -294,7 +303,7 @@ class HomeViewModelTest {
         coEvery { metricsRepository.getActiveUsers() } returns flowOf(Result.success(testActiveUsersResponse))
         coEvery { metricsRepository.getSessions(limit = 5, status = null) } returns flowOf(Result.success(testSessionsResponse))
 
-        viewModel = HomeViewModel(metricsRepository)
+        viewModel = HomeViewModel(metricsRepository, localMetrics, networkMonitor)
         advanceUntilIdle()
 
         val state = viewModel.uiState.value
@@ -305,7 +314,7 @@ class HomeViewModelTest {
     @Test
     fun `ACU usage under 80 percent does not trigger alert`() = runTest {
         setupSuccessRepository()
-        viewModel = HomeViewModel(metricsRepository)
+        viewModel = HomeViewModel(metricsRepository, localMetrics, networkMonitor)
         advanceUntilIdle()
 
         val state = viewModel.uiState.value
@@ -352,7 +361,7 @@ class HomeViewModelTest {
             flowOf(Result.success(testSessionsResponse))
         }
 
-        viewModel = HomeViewModel(metricsRepository)
+        viewModel = HomeViewModel(metricsRepository, localMetrics, networkMonitor)
         advanceUntilIdle()
 
         // Tier 1: billing, activeSessions, mau must come before Tier 2 items
@@ -371,7 +380,7 @@ class HomeViewModelTest {
     @Test
     fun `tier 1 loads all three KPIs in parallel`() = runTest {
         setupSuccessRepository()
-        viewModel = HomeViewModel(metricsRepository)
+        viewModel = HomeViewModel(metricsRepository, localMetrics, networkMonitor)
         advanceUntilIdle()
 
         // Verify all three Tier 1 calls were made
@@ -383,7 +392,7 @@ class HomeViewModelTest {
     @Test
     fun `tier 2 loads all secondary data`() = runTest {
         setupSuccessRepository()
-        viewModel = HomeViewModel(metricsRepository)
+        viewModel = HomeViewModel(metricsRepository, localMetrics, networkMonitor)
         advanceUntilIdle()
 
         coVerify { metricsRepository.getPrMetrics() }
@@ -398,7 +407,7 @@ class HomeViewModelTest {
     @Test
     fun `setTimeRange updates selected time range`() = runTest {
         setupSuccessRepository()
-        viewModel = HomeViewModel(metricsRepository)
+        viewModel = HomeViewModel(metricsRepository, localMetrics, networkMonitor)
         advanceUntilIdle()
 
         viewModel.setTimeRange("7d")
@@ -410,7 +419,7 @@ class HomeViewModelTest {
     @Test
     fun `setTimeRange triggers re-fetch of data`() = runTest {
         setupSuccessRepository()
-        viewModel = HomeViewModel(metricsRepository)
+        viewModel = HomeViewModel(metricsRepository, localMetrics, networkMonitor)
         advanceUntilIdle()
 
         viewModel.setTimeRange("7d")
@@ -424,7 +433,7 @@ class HomeViewModelTest {
     @Test
     fun `default time range is 30d`() = runTest {
         setupSuccessRepository()
-        viewModel = HomeViewModel(metricsRepository)
+        viewModel = HomeViewModel(metricsRepository, localMetrics, networkMonitor)
 
         assertEquals("30d", viewModel.uiState.value.selectedTimeRange)
     }
@@ -434,7 +443,7 @@ class HomeViewModelTest {
     @Test
     fun `refresh sets isRefreshing to true then false`() = runTest {
         setupSuccessRepository()
-        viewModel = HomeViewModel(metricsRepository)
+        viewModel = HomeViewModel(metricsRepository, localMetrics, networkMonitor)
         advanceUntilIdle()
 
         viewModel.uiState.test {
@@ -460,7 +469,7 @@ class HomeViewModelTest {
     @Test
     fun `refresh triggers re-fetch of all data`() = runTest {
         setupSuccessRepository()
-        viewModel = HomeViewModel(metricsRepository)
+        viewModel = HomeViewModel(metricsRepository, localMetrics, networkMonitor)
         advanceUntilIdle()
 
         viewModel.refresh()
@@ -488,7 +497,7 @@ class HomeViewModelTest {
         coEvery { metricsRepository.getActiveUsers() } returns flowOf(Result.success(testActiveUsersResponse))
         coEvery { metricsRepository.getSessions(limit = 5, status = null) } returns flowOf(Result.success(testSessionsResponse))
 
-        viewModel = HomeViewModel(metricsRepository)
+        viewModel = HomeViewModel(metricsRepository, localMetrics, networkMonitor)
         advanceUntilIdle()
 
         val acuState = viewModel.uiState.value.acuState as UiState.Success
@@ -509,7 +518,7 @@ class HomeViewModelTest {
         coEvery { metricsRepository.getActiveUsers() } returns flowOf(Result.success(testActiveUsersResponse))
         coEvery { metricsRepository.getSessions(limit = 5, status = null) } returns flowOf(Result.success(testSessionsResponse))
 
-        viewModel = HomeViewModel(metricsRepository)
+        viewModel = HomeViewModel(metricsRepository, localMetrics, networkMonitor)
         advanceUntilIdle()
 
         val state = viewModel.uiState.value
@@ -520,7 +529,7 @@ class HomeViewModelTest {
     @Test
     fun `DAU chart data points are correctly passed through`() = runTest {
         setupSuccessRepository()
-        viewModel = HomeViewModel(metricsRepository)
+        viewModel = HomeViewModel(metricsRepository, localMetrics, networkMonitor)
         advanceUntilIdle()
 
         val dauState = viewModel.uiState.value.dauChartData as UiState.Success
@@ -532,7 +541,7 @@ class HomeViewModelTest {
     @Test
     fun `session chart data points are correctly passed through`() = runTest {
         setupSuccessRepository()
-        viewModel = HomeViewModel(metricsRepository)
+        viewModel = HomeViewModel(metricsRepository, localMetrics, networkMonitor)
         advanceUntilIdle()
 
         val chartState = viewModel.uiState.value.sessionChartData as UiState.Success

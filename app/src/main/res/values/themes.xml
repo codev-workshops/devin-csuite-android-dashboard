@@ -1,4 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <style name="Theme.DevinCSuite" parent="android:Theme.Material.Light.NoActionBar" />
+    <style name="Theme.DevinCSuite" parent="Theme.SplashScreen">
+        <item name="windowSplashScreenBackground">#0D0D12</item>
+        <item name="windowSplashScreenAnimatedIcon">@mipmap/ic_launcher</item>
+        <item name="postSplashScreenTheme">@style/Theme.DevinCSuite.Main</item>
+    </style>
+
+    <style name="Theme.DevinCSuite.Main" parent="android:Theme.Material.Light.NoActionBar" />
 </resources>

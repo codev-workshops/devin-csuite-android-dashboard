@@ -1,5 +1,8 @@
 package com.devin.csuite.data.remote
 
+import com.devin.csuite.core.NetworkMonitor
+import com.devin.csuite.data.local.datasource.LocalMetricsDataSource
+import com.devin.csuite.data.local.datasource.LocalSessionsDataSource
 import com.devin.csuite.domain.model.ActiveUser
 import com.devin.csuite.domain.model.ActiveUsersResponse
 import com.devin.csuite.domain.model.BillingCycle
@@ -14,7 +17,9 @@ import com.devin.csuite.domain.model.Session
 import com.devin.csuite.domain.model.SessionMetricsResponse
 import com.devin.csuite.domain.model.SessionsResponse
 import io.mockk.coEvery
+import io.mockk.every
 import io.mockk.mockk
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.test.runTest
 import okhttp3.ResponseBody.Companion.toResponseBody
@@ -31,12 +36,30 @@ import java.net.UnknownHostException
 class MetricsRepositoryImplTest {
 
     private lateinit var api: EnterpriseApi
+    private lateinit var localMetrics: LocalMetricsDataSource
+    private lateinit var localSessions: LocalSessionsDataSource
+    private lateinit var networkMonitor: NetworkMonitor
     private lateinit var repository: MetricsRepositoryImpl
 
     @Before
     fun setup() {
         api = mockk()
-        repository = MetricsRepositoryImpl(api)
+        localMetrics = mockk(relaxUnitFun = true)
+        localSessions = mockk(relaxUnitFun = true)
+        networkMonitor = mockk()
+        every { networkMonitor.isConnected } returns MutableStateFlow(true)
+        coEvery { localMetrics.getOrganizations() } returns null
+        coEvery { localMetrics.getBillingCycles() } returns null
+        coEvery { localMetrics.getMauMetrics() } returns null
+        coEvery { localMetrics.getDauMetrics() } returns null
+        coEvery { localMetrics.getPrMetrics() } returns null
+        coEvery { localMetrics.getSessionMetrics() } returns null
+        coEvery { localMetrics.getSearchMetrics() } returns null
+        coEvery { localMetrics.getActiveUsers() } returns null
+        coEvery { localMetrics.getAcuLimits() } returns null
+        coEvery { localMetrics.getDailyConsumption() } returns null
+        coEvery { localSessions.getSessions(any(), any()) } returns null
+        repository = MetricsRepositoryImpl(api, localMetrics, localSessions, networkMonitor)
     }
 
     // --- API Response Parsing Tests ---
