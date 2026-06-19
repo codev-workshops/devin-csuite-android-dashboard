@@ -4,6 +4,8 @@
 
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <uses-permission android:name="android.permission.VIBRATE" />
 
     <application
         android:name=".CSuiteApplication"
@@ -14,6 +16,7 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.DevinCSuite"
         tools:targetApi="35">
+
         <activity
             android:name=".presentation.MainActivity"
             android:exported="true"
@@ -22,7 +25,54 @@
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
+
+            <!-- Deep linking -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="devin-dashboard" />
+            </intent-filter>
         </activity>
+
+        <!-- HiltWorker initializer -->
+        <provider
+            android:name="androidx.startup.InitializationProvider"
+            android:authorities="${applicationId}.androidx-startup"
+            android:exported="false"
+            tools:node="merge">
+            <meta-data
+                android:name="androidx.work.WorkManagerInitializer"
+                android:value="androidx.startup"
+                tools:node="remove" />
+        </provider>
+
+        <!-- Small Widget (2x2) -->
+        <receiver
+            android:name=".widget.SmallDashboardWidgetReceiver"
+            android:exported="true"
+            android:label="Devin ACU">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/small_widget_info" />
+        </receiver>
+
+        <!-- Medium Widget (4x2) -->
+        <receiver
+            android:name=".widget.MediumDashboardWidgetReceiver"
+            android:exported="true"
+            android:label="Devin KPIs">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/medium_widget_info" />
+        </receiver>
+
     </application>
 
 </manifest>

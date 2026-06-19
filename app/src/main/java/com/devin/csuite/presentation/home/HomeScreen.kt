@@ -48,6 +48,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -57,6 +59,9 @@ import com.devin.csuite.domain.model.Session
 import com.devin.csuite.presentation.components.KpiCard
 import com.devin.csuite.presentation.components.ShimmerChartCard
 import com.devin.csuite.presentation.components.ShimmerKpiCard
+import com.devin.csuite.presentation.components.StaleDataBanner
+import com.devin.csuite.presentation.components.animations.AnimatedChartEntry
+import com.devin.csuite.presentation.components.formatLastUpdated
 import com.devin.csuite.presentation.theme.AccentPrimary
 import com.devin.csuite.presentation.theme.AccentSecondary
 import com.devin.csuite.presentation.theme.ErrorRed
@@ -83,6 +88,16 @@ fun HomeScreen(
             contentPadding = PaddingValues(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
+            // Stale Data Banner
+            item {
+                StaleDataBanner(
+                    visible = uiState.isStale || uiState.isOffline,
+                    lastUpdatedText = formatLastUpdated(uiState.lastUpdatedMs),
+                    isOffline = uiState.isOffline,
+                    onRefresh = viewModel::refresh
+                )
+            }
+
             // Critical Alert Banner
             if (uiState.showCriticalAlert) {
                 item {
@@ -184,18 +199,22 @@ fun HomeScreen(
 
             // Session Volume Chart
             item {
-                ChartSection(
-                    title = "Session Volume (30d)",
-                    state = uiState.sessionChartData
-                )
+                AnimatedChartEntry {
+                    ChartSection(
+                        title = "Session Volume (30d)",
+                        state = uiState.sessionChartData
+                    )
+                }
             }
 
             // DAU Chart
             item {
-                ChartSection(
-                    title = "Daily Active Users (30d)",
-                    state = uiState.dauChartData
-                )
+                AnimatedChartEntry(delayMillis = 150) {
+                    ChartSection(
+                        title = "Daily Active Users (30d)",
+                        state = uiState.dauChartData
+                    )
+                }
             }
 
             // Top Users

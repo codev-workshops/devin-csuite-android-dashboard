@@ -1,5 +1,8 @@
 package com.devin.csuite.data.remote
 
+import com.devin.csuite.core.NetworkMonitor
+import com.devin.csuite.data.local.datasource.LocalMetricsDataSource
+import com.devin.csuite.data.local.datasource.LocalSessionsDataSource
 import com.devin.csuite.domain.model.AcuLimitUpdateRequest
 import com.devin.csuite.domain.model.AcuLimitsResponse
 import com.devin.csuite.domain.model.ActiveUsersResponse
@@ -21,59 +24,105 @@ import javax.inject.Singleton
 
 @Singleton
 class MetricsRepositoryImpl @Inject constructor(
-    private val api: EnterpriseApi
+    private val api: EnterpriseApi,
+    private val localMetrics: LocalMetricsDataSource,
+    private val localSessions: LocalSessionsDataSource,
+    private val networkMonitor: NetworkMonitor
 ) : MetricsRepository {
 
-    override fun getOrganizations(): Flow<Result<OrganizationsResponse>> = flow {
-        emit(safeApiCall { api.getOrganizations() })
-    }
+    override fun getOrganizations(): Flow<Result<OrganizationsResponse>> = cacheFirstFlow(
+        getCached = { localMetrics.getOrganizations() },
+        fetchRemote = { safeApiCall { api.getOrganizations() } },
+        saveToCache = { localMetrics.saveOrganizations(it) }
+    )
 
-    override fun getBillingCycles(): Flow<Result<BillingCyclesResponse>> = flow {
-        emit(safeApiCall { api.getBillingCycles() })
-    }
+    override fun getBillingCycles(): Flow<Result<BillingCyclesResponse>> = cacheFirstFlow(
+        getCached = { localMetrics.getBillingCycles() },
+        fetchRemote = { safeApiCall { api.getBillingCycles() } },
+        saveToCache = { localMetrics.saveBillingCycles(it) }
+    )
 
-    override fun getDailyConsumption(): Flow<Result<DailyConsumptionResponse>> = flow {
-        emit(safeApiCall { api.getDailyConsumption() })
-    }
+    override fun getDailyConsumption(): Flow<Result<DailyConsumptionResponse>> = cacheFirstFlow(
+        getCached = { localMetrics.getDailyConsumption() },
+        fetchRemote = { safeApiCall { api.getDailyConsumption() } },
+        saveToCache = { localMetrics.saveDailyConsumption(it) }
+    )
 
-    override fun getAcuLimits(): Flow<Result<AcuLimitsResponse>> = flow {
-        emit(safeApiCall { api.getAcuLimits() })
-    }
+    override fun getAcuLimits(): Flow<Result<AcuLimitsResponse>> = cacheFirstFlow(
+        getCached = { localMetrics.getAcuLimits() },
+        fetchRemote = { safeApiCall { api.getAcuLimits() } },
+        saveToCache = { localMetrics.saveAcuLimits(it) }
+    )
 
     override suspend fun updateAcuLimits(newLimit: Double): Result<AcuLimitsResponse> {
-        return safeApiCall { api.updateAcuLimits(AcuLimitUpdateRequest(newLimit)) }
+        val result = safeApiCall { api.updateAcuLimits(AcuLimitUpdateRequest(newLimit)) }
+        result.getOrNull()?.let { localMetrics.saveAcuLimits(it) }
+        return result
     }
 
-    override fun getSessions(limit: Int, status: String?): Flow<Result<SessionsResponse>> = flow {
-        emit(safeApiCall { api.getSessions(limit = limit, status = status) })
-    }
+    override fun getSessions(limit: Int, status: String?): Flow<Result<SessionsResponse>> = cacheFirstFlow(
+        getCached = { localSessions.getSessions(limit, status) },
+        fetchRemote = { safeApiCall { api.getSessions(limit = limit, status = status) } },
+        saveToCache = { localSessions.saveSessions(it.sessions) }
+    )
 
-    override fun getMauMetrics(): Flow<Result<MauMetricsResponse>> = flow {
-        emit(safeApiCall { api.getMauMetrics() })
-    }
+    override fun getMauMetrics(): Flow<Result<MauMetricsResponse>> = cacheFirstFlow(
+        getCached = { localMetrics.getMauMetrics() },
+        fetchRemote = { safeApiCall { api.getMauMetrics() } },
+        saveToCache = { localMetrics.saveMauMetrics(it) }
+    )
 
-    override fun getDauMetrics(): Flow<Result<DauMetricsResponse>> = flow {
-        emit(safeApiCall { api.getDauMetrics() })
-    }
+    override fun getDauMetrics(): Flow<Result<DauMetricsResponse>> = cacheFirstFlow(
+        getCached = { localMetrics.getDauMetrics() },
+        fetchRemote = { safeApiCall { api.getDauMetrics() } },
+        saveToCache = { localMetrics.saveDauMetrics(it) }
+    )
 
-    override fun getPrMetrics(): Flow<Result<PrMetricsResponse>> = flow {
-        emit(safeApiCall { api.getPrMetrics() })
-    }
+    override fun getPrMetrics(): Flow<Result<PrMetricsResponse>> = cacheFirstFlow(
+        getCached = { localMetrics.getPrMetrics() },
+        fetchRemote = { safeApiCall { api.getPrMetrics() } },
+        saveToCache = { localMetrics.savePrMetrics(it) }
+    )
 
-    override fun getSessionMetrics(): Flow<Result<SessionMetricsResponse>> = flow {
-        emit(safeApiCall { api.getSessionMetrics() })
-    }
+    override fun getSessionMetrics(): Flow<Result<SessionMetricsResponse>> = cacheFirstFlow(
+        getCached = { localMetrics.getSessionMetrics() },
+        fetchRemote = { safeApiCall { api.getSessionMetrics() } },
+        saveToCache = { localMetrics.saveSessionMetrics(it) }
+    )
 
-    override fun getSearchMetrics(): Flow<Result<SearchMetricsResponse>> = flow {
-        emit(safeApiCall { api.getSearchMetrics() })
-    }
+    override fun getSearchMetrics(): Flow<Result<SearchMetricsResponse>> = cacheFirstFlow(
+        getCached = { localMetrics.getSearchMetrics() },
+        fetchRemote = { safeApiCall { api.getSearchMetrics() } },
+        saveToCache = { localMetrics.saveSearchMetrics(it) }
+    )
 
-    override fun getActiveUsers(): Flow<Result<ActiveUsersResponse>> = flow {
-        emit(safeApiCall { api.getActiveUsers() })
-    }
+    override fun getActiveUsers(): Flow<Result<ActiveUsersResponse>> = cacheFirstFlow(
+        getCached = { localMetrics.getActiveUsers() },
+        fetchRemote = { safeApiCall { api.getActiveUsers() } },
+        saveToCache = { localMetrics.saveActiveUsers(it) }
+    )
 
     override suspend fun validateApiKey(): Result<OrganizationsResponse> {
         return safeApiCall { api.getOrganizations() }
+    }
+
+    private fun <T> cacheFirstFlow(
+        getCached: suspend () -> T?,
+        fetchRemote: suspend () -> Result<T>,
+        saveToCache: suspend (T) -> Unit
+    ): Flow<Result<T>> = flow {
+        val cached = getCached()
+        if (cached != null) {
+            emit(Result.success(cached))
+        }
+
+        if (networkMonitor.isConnected.value) {
+            val remoteResult = fetchRemote()
+            remoteResult.getOrNull()?.let { saveToCache(it) }
+            emit(remoteResult)
+        } else if (cached == null) {
+            emit(Result.failure(OfflineException()))
+        }
     }
 
     private suspend fun <T> safeApiCall(call: suspend () -> Response<T>): Result<T> {
@@ -98,3 +147,5 @@ class MetricsRepositoryImpl @Inject constructor(
 }
 
 class ApiException(val code: Int, message: String) : Exception(message)
+
+class OfflineException : Exception("No internet connection. Showing cached data.")

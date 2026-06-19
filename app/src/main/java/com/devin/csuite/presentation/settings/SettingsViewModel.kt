@@ -4,7 +4,10 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.devin.csuite.data.local.PreferencesManager
 import com.devin.csuite.data.local.SecureKeyStore
+import com.devin.csuite.data.local.datasource.LocalMetricsDataSource
+import com.devin.csuite.data.local.datasource.LocalSessionsDataSource
 import com.devin.csuite.domain.repository.MetricsRepository
+import com.devin.csuite.notification.NotificationHelper
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -19,14 +22,20 @@ data class SettingsUiState(
     val refreshInterval: Int = 0,
     val isValidating: Boolean = false,
     val validationResult: String? = null,
-    val showReplaceDialog: Boolean = false
+    val showReplaceDialog: Boolean = false,
+    val acuOverageEnabled: Boolean = true,
+    val errorSpikeEnabled: Boolean = true,
+    val guardrailEnabled: Boolean = true
 )
 
 @HiltViewModel
 class SettingsViewModel @Inject constructor(
     private val secureKeyStore: SecureKeyStore,
     private val preferencesManager: PreferencesManager,
-    private val metricsRepository: MetricsRepository
+    private val metricsRepository: MetricsRepository,
+    private val localMetrics: LocalMetricsDataSource,
+    private val localSessions: LocalSessionsDataSource,
+    private val notificationHelper: NotificationHelper
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(SettingsUiState())
@@ -47,10 +56,17 @@ class SettingsViewModel @Inject constructor(
             val theme = preferencesManager.themeMode.first()
             val interval = preferencesManager.refreshInterval.first()
 
+            val acuEnabled = notificationHelper.isNotificationEnabled(NotificationHelper.CHANNEL_ACU_OVERAGE)
+            val errorEnabled = notificationHelper.isNotificationEnabled(NotificationHelper.CHANNEL_ERROR_SPIKE)
+            val guardrailEnabled = notificationHelper.isNotificationEnabled(NotificationHelper.CHANNEL_GUARDRAIL)
+
             _uiState.value = _uiState.value.copy(
                 maskedApiKey = masked,
                 themeMode = theme,
-                refreshInterval = interval
+                refreshInterval = interval,
+                acuOverageEnabled = acuEnabled,
+                errorSpikeEnabled = errorEnabled,
+                guardrailEnabled = guardrailEnabled
             )
         }
     }
@@ -79,7 +95,25 @@ class SettingsViewModel @Inject constructor(
 
     fun replaceApiKey() {
         secureKeyStore.clearApiKey()
+        viewModelScope.launch {
+            localMetrics.clearAll()
+            localSessions.clearAll()
+        }
         _uiState.value = _uiState.value.copy(showReplaceDialog = false)
+    }
+
+    fun setNotificationEnabled(channelId: String, enabled: Boolean) {
+        viewModelScope.launch {
+            notificationHelper.setNotificationEnabled(channelId, enabled)
+            when (channelId) {
+                NotificationHelper.CHANNEL_ACU_OVERAGE ->
+                    _uiState.value = _uiState.value.copy(acuOverageEnabled = enabled)
+                NotificationHelper.CHANNEL_ERROR_SPIKE ->
+                    _uiState.value = _uiState.value.copy(errorSpikeEnabled = enabled)
+                NotificationHelper.CHANNEL_GUARDRAIL ->
+                    _uiState.value = _uiState.value.copy(guardrailEnabled = enabled)
+            }
+        }
     }
 
     fun validateApiKey() {
