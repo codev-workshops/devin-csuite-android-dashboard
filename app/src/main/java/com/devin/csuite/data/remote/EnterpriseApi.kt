@@ -9,13 +9,17 @@ import com.devin.csuite.domain.model.ActiveUsersResponse
 import com.devin.csuite.domain.model.MauMetricsResponse
 import com.devin.csuite.domain.model.OrganizationsResponse
 import com.devin.csuite.domain.model.PrMetricsResponse
+import com.devin.csuite.domain.model.RolesResponse
 import com.devin.csuite.domain.model.SearchMetricsResponse
 import com.devin.csuite.domain.model.SessionMetricsResponse
 import com.devin.csuite.domain.model.SessionsResponse
+import com.devin.csuite.domain.model.UsersResponse
+import com.devin.csuite.domain.model.WauMetricsResponse
 import retrofit2.Response
 import retrofit2.http.Body
 import retrofit2.http.GET
 import retrofit2.http.PUT
+import retrofit2.http.Path
 import retrofit2.http.Query
 
 interface EnterpriseApi {
@@ -61,4 +65,32 @@ interface EnterpriseApi {
 
     @GET("v3/enterprise/metrics/active-users")
     suspend fun getActiveUsers(): Response<ActiveUsersResponse>
+
+    @GET("v3/enterprise/metrics/wau")
+    suspend fun getWauMetrics(): Response<WauMetricsResponse>
+
+    @GET("v3/enterprise/users")
+    suspend fun getUsers(): Response<UsersResponse>
+
+    @GET("v3/enterprise/roles")
+    suspend fun getRoles(): Response<RolesResponse>
+
+    // Org-scoped endpoints
+    @GET("v3/organizations/{org_id}/metrics/dau")
+    suspend fun getOrgDauMetrics(@Path("org_id") orgId: String): Response<DauMetricsResponse>
+
+    @GET("v3/organizations/{org_id}/metrics/wau")
+    suspend fun getOrgWauMetrics(@Path("org_id") orgId: String): Response<WauMetricsResponse>
+
+    @GET("v3/organizations/{org_id}/metrics/mau")
+    suspend fun getOrgMauMetrics(@Path("org_id") orgId: String): Response<MauMetricsResponse>
+
+    @GET("v3/organizations/{org_id}/metrics/active-users")
+    suspend fun getOrgActiveUsers(@Path("org_id") orgId: String): Response<ActiveUsersResponse>
+
+    @GET("v3/organizations/{org_id}/users")
+    suspend fun getOrgUsers(@Path("org_id") orgId: String): Response<UsersResponse>
+
+    @GET("v3/organizations/{org_id}/roles")
+    suspend fun getOrgRoles(@Path("org_id") orgId: String): Response<RolesResponse>
 }
