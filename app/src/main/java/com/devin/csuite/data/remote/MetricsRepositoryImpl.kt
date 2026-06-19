@@ -1,11 +1,15 @@
 package com.devin.csuite.data.remote
 
+import com.devin.csuite.domain.model.AcuLimitUpdateRequest
+import com.devin.csuite.domain.model.AcuLimitsResponse
 import com.devin.csuite.domain.model.ActiveUsersResponse
 import com.devin.csuite.domain.model.BillingCyclesResponse
+import com.devin.csuite.domain.model.DailyConsumptionResponse
 import com.devin.csuite.domain.model.DauMetricsResponse
 import com.devin.csuite.domain.model.MauMetricsResponse
 import com.devin.csuite.domain.model.OrganizationsResponse
 import com.devin.csuite.domain.model.PrMetricsResponse
+import com.devin.csuite.domain.model.SearchMetricsResponse
 import com.devin.csuite.domain.model.SessionMetricsResponse
 import com.devin.csuite.domain.model.SessionsResponse
 import com.devin.csuite.domain.repository.MetricsRepository
@@ -28,6 +32,18 @@ class MetricsRepositoryImpl @Inject constructor(
         emit(safeApiCall { api.getBillingCycles() })
     }
 
+    override fun getDailyConsumption(): Flow<Result<DailyConsumptionResponse>> = flow {
+        emit(safeApiCall { api.getDailyConsumption() })
+    }
+
+    override fun getAcuLimits(): Flow<Result<AcuLimitsResponse>> = flow {
+        emit(safeApiCall { api.getAcuLimits() })
+    }
+
+    override suspend fun updateAcuLimits(newLimit: Double): Result<AcuLimitsResponse> {
+        return safeApiCall { api.updateAcuLimits(AcuLimitUpdateRequest(newLimit)) }
+    }
+
     override fun getSessions(limit: Int, status: String?): Flow<Result<SessionsResponse>> = flow {
         emit(safeApiCall { api.getSessions(limit = limit, status = status) })
     }
@@ -46,6 +62,10 @@ class MetricsRepositoryImpl @Inject constructor(
 
     override fun getSessionMetrics(): Flow<Result<SessionMetricsResponse>> = flow {
         emit(safeApiCall { api.getSessionMetrics() })
+    }
+
+    override fun getSearchMetrics(): Flow<Result<SearchMetricsResponse>> = flow {
+        emit(safeApiCall { api.getSearchMetrics() })
     }
 
     override fun getActiveUsers(): Flow<Result<ActiveUsersResponse>> = flow {
