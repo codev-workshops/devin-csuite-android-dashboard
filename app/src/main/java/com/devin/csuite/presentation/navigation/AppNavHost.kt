@@ -14,6 +14,7 @@ import com.devin.csuite.presentation.onboarding.WelcomeScreen
 import com.devin.csuite.presentation.sessions.SessionDetailScreen
 import com.devin.csuite.presentation.sessions.SessionsScreen
 import com.devin.csuite.presentation.settings.SettingsScreen
+import com.devin.csuite.presentation.security.SecurityScreen
 
 @Composable
 fun AppNavHost(
@@ -85,6 +86,17 @@ fun AppNavHost(
                     navController.navigate(Routes.WELCOME) {
                         popUpTo(0) { inclusive = true }
                     }
+                },
+                onNavigateToSecurity = {
+                    navController.navigate(Routes.SECURITY)
+                }
+            )
+        }
+
+        composable(Routes.SECURITY) {
+            SecurityScreen(
+                onNavigateBack = {
+                    navController.popBackStack()
                 }
             )
         }
