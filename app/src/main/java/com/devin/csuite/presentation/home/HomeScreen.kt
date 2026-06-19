@@ -66,6 +66,7 @@ import com.devin.csuite.presentation.theme.WarningAmber
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(
+    onNavigateToTeam: () -> Unit = {},
     viewModel: HomeViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -199,7 +200,10 @@ fun HomeScreen(
 
             // Top Users
             item {
-                TopUsersSection(state = uiState.topUsers)
+                TopUsersSection(
+                    state = uiState.topUsers,
+                    onSeeAll = onNavigateToTeam
+                )
             }
 
             // Recent Sessions
@@ -377,7 +381,10 @@ private fun EmptyChartPlaceholder() {
 }
 
 @Composable
-private fun TopUsersSection(state: UiState<List<ActiveUser>>) {
+private fun TopUsersSection(
+    state: UiState<List<ActiveUser>>,
+    onSeeAll: () -> Unit = {}
+) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
@@ -386,11 +393,23 @@ private fun TopUsersSection(state: UiState<List<ActiveUser>>) {
         )
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
-            Text(
-                text = "Top Users",
-                style = MaterialTheme.typography.titleMedium,
-                color = MaterialTheme.colorScheme.onSurface
-            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "Top Users",
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                Text(
+                    text = "See all",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = AccentPrimary,
+                    modifier = Modifier.clickable(onClick = onSeeAll)
+                )
+            }
             Spacer(modifier = Modifier.height(12.dp))
             when (state) {
                 is UiState.Loading -> {

@@ -16,6 +16,7 @@ import com.devin.csuite.presentation.sessions.SessionDetailScreen
 import com.devin.csuite.presentation.sessions.SessionsScreen
 import com.devin.csuite.presentation.settings.SettingsScreen
 import com.devin.csuite.presentation.security.SecurityScreen
+import com.devin.csuite.presentation.team.TeamScreen
 
 @Composable
 fun AppNavHost(
@@ -49,7 +50,11 @@ fun AppNavHost(
         }
 
         composable(Routes.HOME) {
-            HomeScreen()
+            HomeScreen(
+                onNavigateToTeam = {
+                    navController.navigate(Routes.TEAM)
+                }
+            )
         }
 
         composable(Routes.ANALYTICS) {
@@ -90,6 +95,9 @@ fun AppNavHost(
                 },
                 onNavigateToSecurity = {
                     navController.navigate(Routes.SECURITY)
+                },
+                onNavigateToTeam = {
+                    navController.navigate(Routes.TEAM)
                 }
             )
         }
@@ -100,6 +108,10 @@ fun AppNavHost(
                     navController.popBackStack()
                 }
             )
+        }
+
+        composable(Routes.TEAM) {
+            TeamScreen()
         }
     }
 }

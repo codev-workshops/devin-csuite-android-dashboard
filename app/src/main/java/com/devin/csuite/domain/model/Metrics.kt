@@ -49,3 +49,11 @@ data class ActiveUser(
 data class ActiveUsersResponse(
     @SerialName("users") val users: List<ActiveUser> = emptyList()
 )
+
+@Serializable
+data class WauMetricsResponse(
+    @SerialName("wau") val wau: Int = 0,
+    @SerialName("data") val data: List<MetricDataPoint> = emptyList()
+)
+
+

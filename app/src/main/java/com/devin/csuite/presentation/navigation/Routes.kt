@@ -11,6 +11,7 @@ object Routes {
     const val BILLING = "billing"
     const val SETTINGS = "settings"
     const val SECURITY = "security"
+    const val TEAM = "team"
 
     fun sessionDetail(devinId: String): String = "session_detail/$devinId"
 }
