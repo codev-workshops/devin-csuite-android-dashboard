@@ -4,6 +4,7 @@ import com.devin.csuite.BuildConfig
 import com.devin.csuite.core.Constants
 import com.devin.csuite.data.remote.AuthInterceptor
 import com.devin.csuite.data.remote.EnterpriseApi
+import com.devin.csuite.data.remote.SessionsApi
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -69,5 +70,11 @@ object NetworkModule {
     @Singleton
     fun provideEnterpriseApi(retrofit: Retrofit): EnterpriseApi {
         return retrofit.create(EnterpriseApi::class.java)
+    }
+
+    @Provides
+    @Singleton
+    fun provideSessionsApi(retrofit: Retrofit): SessionsApi {
+        return retrofit.create(SessionsApi::class.java)
     }
 }

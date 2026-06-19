@@ -68,7 +68,7 @@ fun MainApp(hasApiKey: Boolean) {
 
     val showBottomBar = currentRoute in listOf(
         Routes.HOME, Routes.ANALYTICS, Routes.SESSIONS, Routes.BILLING, Routes.SETTINGS
-    )
+    ) && currentRoute?.startsWith("session_detail") != true
 
     Scaffold(
         bottomBar = {

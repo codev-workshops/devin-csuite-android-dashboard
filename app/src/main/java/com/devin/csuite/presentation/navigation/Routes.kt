@@ -7,6 +7,9 @@ object Routes {
     const val HOME = "home"
     const val ANALYTICS = "analytics"
     const val SESSIONS = "sessions"
+    const val SESSION_DETAIL = "session_detail/{devinId}"
     const val BILLING = "billing"
     const val SETTINGS = "settings"
+
+    fun sessionDetail(devinId: String): String = "session_detail/$devinId"
 }
